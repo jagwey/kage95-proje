@@ -32,6 +32,13 @@ export const mangas: Manga[] = [
     summary: 'Thorfinn, çocukluğundan beri intikam peşinde yaşayan genç bir savaşçıdır. Vikingler çağında geçen bu hikâye, savaşın içinden barış ve özgürlük arayışına uzanır.',
     cover: '/covers/vinland-saga.png', status: 'Tamamlandı', rating: 9.8, chapters: 217, year: 2005, views: '980K', accent: '#b7a56a',
   },
+  {
+    id: 3,
+    title: 'Re:ZERO', japaneseTitle: 'Re:ゼロから始める異世界生活', author: 'Tappei Nagatsuki',
+    genres: ['Fantastik', 'Dram', 'Aksiyon'],
+    summary: 'Subaru Natsuki başka bir dünyaya çağrılır ve ölümden sonra zamanı geri alma gücüyle sevdiklerini korumaya çalışır.',
+    cover: '/covers/re-zero.png', status: 'Devam Ediyor', rating: 9.4, chapters: 64, year: 2014, views: '860K', accent: '#a99be8',
+  },
 ]
 
-export const genres = ['Tümü', 'Aksiyon', 'Dram', 'Tarih']
+export const genres = ['Tümü', 'Aksiyon', 'Dram', 'Tarih', 'Fantastik']

@@ -62,7 +62,7 @@ function App() {
         <section className="intro">
           <p>KAGE95 MANGA</p>
           <h1>İyi hikâyeler,<br /><span>yeni dünyalar.</span></h1>
-          <div className="intro-line">Wind Breaker ve Vinland Saga</div>
+          <div className="intro-line">Wind Breaker, Vinland Saga ve Re:ZERO</div>
         </section>
 
         <section className="catalog">
