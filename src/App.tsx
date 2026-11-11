@@ -5,6 +5,7 @@ import { genres, mangas, type Manga } from './data'
 type Page = 'all' | 'favorites'
 
 function App() {
+  const coverUrl = (cover: string) => `${import.meta.env.BASE_URL}${cover}`
   const [page, setPage] = useState<Page>('all')
   const [query, setQuery] = useState('')
   const [genre, setGenre] = useState('Tümü')
@@ -89,7 +90,7 @@ function App() {
                 return (
                   <article className="card" key={manga.id}>
                     <button className="cover" onClick={() => setSelected(manga)}>
-                      <img src={manga.cover} alt={`${manga.title} kapağı`} />
+                      <img src={coverUrl(manga.cover)} alt={`${manga.title} kapağı`} />
                     </button>
                     <div className="card-info">
                       <button className="title" onClick={() => setSelected(manga)}>{manga.title}</button>
@@ -117,7 +118,7 @@ function App() {
         <div className="modal" onClick={() => setSelected(null)}>
           <section className="modal-content" onClick={(event) => event.stopPropagation()}>
             <button className="close" onClick={() => setSelected(null)} aria-label="Kapat"><X size={20} /></button>
-            <img src={selected.cover} alt={`${selected.title} kapağı`} />
+            <img src={coverUrl(selected.cover)} alt={`${selected.title} kapağı`} />
             <div>
               <p className="label">MANGA DETAYI</p>
               <h2>{selected.title}</h2>
