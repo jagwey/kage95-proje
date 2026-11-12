@@ -1,0 +1,12 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Deploy KAGE95",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "echo F5 deploy is configured",
+      "preLaunchTask": "Deploy to GitHub Pages"
+    }
+  ]
+}
