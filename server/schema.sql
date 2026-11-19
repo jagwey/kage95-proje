@@ -1,0 +1,90 @@
+CREATE TABLE IF NOT EXISTS users (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  first_name VARCHAR(60) NOT NULL,
+  last_name VARCHAR(60) NOT NULL,
+  email VARCHAR(254) NOT NULL UNIQUE,
+  username VARCHAR(24) NOT NULL UNIQUE,
+  password_hash VARCHAR(160) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  token_hash BINARY(32) PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  expires_at DATETIME NOT NULL,
+  INDEX (expires_at),
+  FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS mangas (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(150) NOT NULL,
+  japanese_title VARCHAR(150) NOT NULL,
+  author VARCHAR(150) NOT NULL,
+  genres JSON NOT NULL,
+  summary TEXT NOT NULL,
+  cover VARCHAR(255) NOT NULL,
+  status VARCHAR(30) NOT NULL,
+  catalog_rating DECIMAL(3,1) NOT NULL,
+  chapters INT UNSIGNED NOT NULL,
+  year SMALLINT UNSIGNED NOT NULL,
+  views VARCHAR(24) NOT NULL,
+  accent CHAR(7) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS favorites (
+  user_id INT UNSIGNED NOT NULL,
+  manga_id INT UNSIGNED NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, manga_id),
+  FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+  FOREIGN KEY (manga_id) REFERENCES mangas (id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS ratings (
+  manga_id INT UNSIGNED NOT NULL,
+  user_id INT UNSIGNED NOT NULL,
+  score TINYINT UNSIGNED NOT NULL CHECK (score BETWEEN 1 AND 10),
+  PRIMARY KEY (manga_id, user_id),
+  FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+  FOREIGN KEY (manga_id) REFERENCES mangas (id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS comments (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  manga_id INT UNSIGNED NOT NULL,
+  user_id INT UNSIGNED NOT NULL,
+  body VARCHAR(1000) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX (manga_id, id),
+  FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+  FOREIGN KEY (manga_id) REFERENCES mangas (id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS friendships (
+  user_low INT UNSIGNED NOT NULL,
+  user_high INT UNSIGNED NOT NULL,
+  requested_by INT UNSIGNED NOT NULL,
+  status ENUM('pending', 'accepted') NOT NULL DEFAULT 'pending',
+  PRIMARY KEY (user_low, user_high),
+  INDEX (user_high, user_low),
+  CHECK (user_low < user_high),
+  CHECK (requested_by IN (user_low, user_high)),
+  FOREIGN KEY (user_low) REFERENCES users (id) ON DELETE CASCADE,
+  FOREIGN KEY (user_high) REFERENCES users (id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_low INT UNSIGNED NOT NULL,
+  user_high INT UNSIGNED NOT NULL,
+  sender_id INT UNSIGNED NOT NULL,
+  body VARCHAR(2000),
+  manga_id INT UNSIGNED,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX (user_low, user_high, id),
+  CHECK (sender_id IN (user_low, user_high)),
+  FOREIGN KEY (user_low, user_high) REFERENCES friendships (user_low, user_high) ON DELETE CASCADE,
+  FOREIGN KEY (manga_id) REFERENCES mangas (id) ON DELETE SET NULL
+);
