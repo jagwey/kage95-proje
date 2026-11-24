@@ -9,10 +9,11 @@ export type Manga = {
   genres: string[]
   summary: string
   cover: string
-  status: 'Devam Ediyor' | 'Tamamlandı'
+  status: string
   rating: number
   ratingCount?: number
   chapters: number
+  uploadedChapters?: number
   year: number
   views: string
   accent: string

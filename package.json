@@ -10,7 +10,9 @@
     "build:pages": "tsc -b && vite build --mode pages",
     "db:setup": "node --env-file-if-exists=.env server/setup.mjs",
     "dev:api": "node --env-file-if-exists=.env --watch server/index.mjs",
-    "start": "node --env-file-if-exists=.env server/index.mjs"
+    "dev:api:dotnet": "dotnet watch --project server-dotnet/Kage95.Api run",
+    "start": "node --env-file-if-exists=.env server/index.mjs",
+    "start:dotnet": "dotnet run --project server-dotnet/Kage95.Api"
   },
   "dependencies": {
     "cookie-parser": "^1.4.7",

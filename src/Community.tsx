@@ -1,5 +1,17 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { api, errorText, formatDate, type Friend, type History, type Message, type Profile, type User } from './api'
+import { Ban, UserMinus } from 'lucide-react'
+import {
+  api,
+  errorText,
+  formatDate,
+  roleLabel,
+  type BlockedUser,
+  type Friend,
+  type History,
+  type Message,
+  type ProfileSummary,
+  type User,
+} from './api'
 import type { Manga } from './data'
 
 function Chat({ friend, user, mangas, preselected, openManga }: {
@@ -120,18 +132,28 @@ export function Community({ user, mangas, share, signIn, openManga }: {
   user: User | null; mangas: Manga[]; share: Manga | null; signIn: () => void; openManga: (id: number) => void
 }) {
   const [friends, setFriends] = useState<Friend[]>([])
-  const [results, setResults] = useState<Profile[] | null>(null)
+  const [blocked, setBlocked] = useState<BlockedUser[]>([])
+  const [results, setResults] = useState<ProfileSummary[] | null>(null)
   const [activeId, setActiveId] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const active = friends.find((friend) => friend.id === activeId && friend.status === 'accepted')
 
+  async function loadAll() {
+    const [friendList, blockList] = await Promise.all([
+      api<Friend[]>('/social/friends'),
+      api<BlockedUser[]>('/social/blocks'),
+    ])
+    setFriends(friendList)
+    setBlocked(blockList)
+  }
+
   useEffect(() => {
     if (!user) return
     let live = true
-    api<Friend[]>('/social/friends').then((list) => {
-      if (live) setFriends(list)
-    }).catch((error) => { if (live) setError(errorText(error)) })
+    Promise.all([api<Friend[]>('/social/friends'), api<BlockedUser[]>('/social/blocks')])
+      .then(([f, b]) => { if (live) { setFriends(f); setBlocked(b) } })
+      .catch((error) => { if (live) setError(errorText(error)) })
     return () => { live = false }
   }, [user])
 
@@ -148,20 +170,26 @@ export function Community({ user, mangas, share, signIn, openManga }: {
     try { await action() } catch (error) { setError(errorText(error)) } finally { setBusy(false) }
   }
 
-  async function loadFriends() {
-    setFriends(await api<Friend[]>('/social/friends'))
-  }
-
   function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const username = new FormData(event.currentTarget).get('username')?.toString().trim() ?? ''
-    void act(async () => setResults(await api<Profile[]>(`/social/users?username=${encodeURIComponent(username)}`)))
+    void act(async () => setResults(await api<ProfileSummary[]>(`/social/users?username=${encodeURIComponent(username)}`)))
   }
 
   function friendAction(id: number, method: 'POST' | 'PATCH' | 'DELETE') {
     void act(async () => {
       await api(`/social/friends/${id}`, method)
-      await loadFriends()
+      if (method === 'DELETE' && activeId === id) setActiveId(null)
+      await loadAll()
+    })
+  }
+
+  function blockAction(id: number, method: 'POST' | 'DELETE') {
+    void act(async () => {
+      await api(`/social/blocks/${id}`, method)
+      if (method === 'POST' && activeId === id) setActiveId(null)
+      setResults((prev) => prev ? prev.filter((p) => p.id !== id) : prev)
+      await loadAll()
     })
   }
 
@@ -176,31 +204,82 @@ export function Community({ user, mangas, share, signIn, openManga }: {
             <button className="primary" disabled={busy}>Ara</button>
           </form>
           {results?.length === 0 && <p className="muted">Kullanıcı bulunamadı.</p>}
-          {results?.map((person) => <div className="friend-row" key={person.id}>
-            <strong>@{person.username}</strong>
-            {friends.some((friend) => friend.id === person.id)
-              ? <span className="muted">Listende</span>
-              : <button className="secondary" disabled={busy} onClick={() => friendAction(person.id, 'POST')}>İstek gönder</button>}
-          </div>)}
+          {results?.map((person) => {
+            const badge = roleLabel(person.role)
+            return (
+              <div className="friend-row" key={person.id}>
+                <div>
+                  <strong>@{person.username}</strong>
+                  {badge && <span className={`role-badge role-${person.role}`}>{badge}</span>}
+                </div>
+                <div className="inline-form">
+                  {friends.some((friend) => friend.id === person.id)
+                    ? <span className="muted">Listende</span>
+                    : <button className="secondary" disabled={busy} onClick={() => friendAction(person.id, 'POST')}>İstek gönder</button>}
+                  <button className="danger-btn" disabled={busy} onClick={() => blockAction(person.id, 'POST')} title="Engelle">
+                    <Ban size={13} />
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+
           <div className="friend-row">
             <h3>Arkadaşların ve istekler</h3>
-            <button className="secondary" disabled={busy} onClick={() => void act(loadFriends)}>Yenile</button>
+            <button className="secondary" disabled={busy} onClick={() => void act(loadAll)}>Yenile</button>
           </div>
           {friends.length === 0 && <p className="muted">Henüz arkadaş veya istek yok.</p>}
-          {friends.map((friend) => <div key={friend.id} className="friend-row">
-            <strong>@{friend.username}</strong>
-            {friend.status === 'accepted'
-              ? <button className="secondary" aria-pressed={activeId === friend.id}
-                  onClick={() => setActiveId(friend.id)}>Sohbet</button>
-              : friend.requestedBy === user.id
-                ? <button className="secondary" disabled={busy} onClick={() => friendAction(friend.id, 'DELETE')}>İsteği iptal et</button>
-                : <div className="inline-form">
-                  <button className="primary" disabled={busy} onClick={() => friendAction(friend.id, 'PATCH')}>Kabul et</button>
-                  <button className="secondary" disabled={busy} onClick={() => friendAction(friend.id, 'DELETE')}>Reddet</button>
-                </div>}
-          </div>)}
+          {friends.map((friend) => {
+            const badge = roleLabel(friend.role)
+            return (
+              <div key={friend.id} className="friend-row">
+                <div>
+                  <strong>@{friend.username}</strong>
+                  {badge && <span className={`role-badge role-${friend.role}`}>{badge}</span>}
+                </div>
+                {friend.status === 'accepted'
+                  ? <div className="inline-form">
+                    <button className="secondary" aria-pressed={activeId === friend.id}
+                      onClick={() => setActiveId(friend.id)}>Sohbet</button>
+                    <button className="secondary" disabled={busy} title="Arkadaşlıktan çıkar"
+                      onClick={() => {
+                        if (window.confirm(`@${friend.username} kişisini arkadaşlıktan çıkarmak istiyor musun?`))
+                          friendAction(friend.id, 'DELETE')
+                      }}><UserMinus size={14} /></button>
+                    <button className="danger-btn" disabled={busy} title="Engelle"
+                      onClick={() => {
+                        if (window.confirm(`@${friend.username} kişisini engellemek istiyor musun?`))
+                          blockAction(friend.id, 'POST')
+                      }}><Ban size={14} /></button>
+                  </div>
+                  : friend.requestedBy === user.id
+                    ? <button className="secondary" disabled={busy} onClick={() => friendAction(friend.id, 'DELETE')}>İsteği iptal et</button>
+                    : <div className="inline-form">
+                      <button className="primary" disabled={busy} onClick={() => friendAction(friend.id, 'PATCH')}>Kabul et</button>
+                      <button className="secondary" disabled={busy} onClick={() => friendAction(friend.id, 'DELETE')}>Reddet</button>
+                      <button className="danger-btn" disabled={busy} title="Engelle" onClick={() => blockAction(friend.id, 'POST')}><Ban size={13} /></button>
+                    </div>}
+              </div>
+            )
+          })}
+
+          {blocked.length > 0 && (
+            <div className="blocked-section stack">
+              <h3>Engellenenler ({blocked.length})</h3>
+              {blocked.map((person) => (
+                <div key={person.id} className="friend-row">
+                  <span className="muted">@{person.username}</span>
+                  <button className="secondary" disabled={busy} onClick={() => blockAction(person.id, 'DELETE')}>
+                    Engeli kaldır
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {error && <p role="alert" className="error">{error}</p>}
         </section>
+
         {active
           ? <Chat key={active.id} friend={active} user={user} mangas={mangas} preselected={share?.id ?? null} openManga={openManga} />
           : <section className="community-panel"><p className="muted">

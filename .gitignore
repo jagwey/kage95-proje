@@ -10,3 +10,6 @@ dist
 .env
 .env.*
 !.env.example
+server-dotnet/**/bin/
+server-dotnet/**/obj/
+server-dotnet/Kage95.Api/uploads/

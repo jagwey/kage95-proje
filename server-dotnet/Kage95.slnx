@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Kage95.Api/Kage95.Api.csproj" />
+  <Project Path="Kage95.Tests/Kage95.Tests.csproj" />
+</Solution>
